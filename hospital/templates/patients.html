@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patients Management</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 5px;
+            margin-right: 10px;
+        }
+
+        input[type="submit"] {
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Patients Management for Hospital <span id="hospital-name"></span></h1>
+
+    <h2>Add / Update Patient</h2>
+    <form id="patient-form">
+        {% csrf_token %}
+        <input type="hidden" id="patient-id">
+        <input type="hidden" id="hospital-id">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+        <label for="inpatient_number">Inpatient Number:</label>
+        <input type="text" id="inpatient_number">
+        <label for="outpatient_number">Outpatient Number:</label>
+        <input type="text" id="outpatient_number">
+        <input type="submit" value="Submit">
+    </form>
+
+    <h2>Patients List</h2>
+    <table id="patients-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Inpatient Number</th>
+            <th>Outpatient Number</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Patients will be listed here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const apiEndpoint = '/api/patients/';
+    let csrfToken = "{{ csrf_token }}";  // Assign the CSRF token value to the JavaScript variable
+
+    $(document).ready(function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        console.log('urlParams', urlParams)
+        const hospitalId = urlParams.get('hospitalId');
+        $('#hospital-id').val(hospitalId);
+        loadPatients(hospitalId);
+        console.log('hospitalId', hospitalId)
+        $('#patient-form').on('submit', function (event) {
+            event.preventDefault();
+            const patientId = $('#patient-id').val();
+            const name = $('#name').val();
+            const inpatient_number = $('#inpatient_number').val();
+            const outpatient_number = $('#outpatient_number').val();
+
+            if (patientId) {
+                updatePatient(patientId, hospitalId, name, inpatient_number, outpatient_number);
+            } else {
+                createPatient(hospitalId, name, inpatient_number, outpatient_number);
+            }
+        });
+    });
+
+    function loadPatients(hospitalId) {
+        $.ajax({
+            url: `${apiEndpoint}?hospital=${hospitalId}`,
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+
+            success: function (data) {
+                const tbody = $('#patients-table tbody');
+                tbody.empty();
+                data.forEach(patient => {
+                    const row = `<tr>
+                            <td>${patient.id}</td>
+                            <td>${patient.name}</td>
+                            <td>${patient.inpatient_number}</td>
+                            <td>${patient.outpatient_number}</td>
+                            <td>
+                                <button onclick="loadPatientForEdit(${patient.id}, '${patient.name}', '${patient.inpatient_number}', '${patient.outpatient_number}')">Edit</button>
+                                <button onclick="deletePatient(${patient.id})">Delete</button>
+                            </td>
+                        </tr>`;
+                    tbody.append(row);
+                });
+            }
+        });
+    }
+
+    function createPatient(hospitalId, name, inpatient_number, outpatient_number) {
+        $.ajax({
+            url: apiEndpoint,
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+
+            contentType: 'application/json',
+            data: JSON.stringify({hospital: hospitalId, name, inpatient_number, outpatient_number}),
+            success: function () {
+                $('#patient-form')[0].reset();
+                loadPatients(hospitalId);
+            }
+        });
+    }
+
+    function updatePatient(id, hospitalId, name, inpatient_number, outpatient_number) {
+        $.ajax({
+            url: `${apiEndpoint}${id}/`,
+            method: 'PUT',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+
+            contentType: 'application/json',
+            data: JSON.stringify({hospital: hospitalId, name, inpatient_number, outpatient_number}),
+            success: function () {
+                $('#patient-form')[0].reset();
+                loadPatients(hospitalId);
+            }
+        });
+    }
+
+    function deletePatient(id) {
+        $.ajax({
+            url: `${apiEndpoint}${id}/`,
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+
+            success: function () {
+                const hospitalId = $('#hospital-id').val();
+                loadPatients(hospitalId);
+            }
+        });
+    }
+
+    function loadPatientForEdit(id, name, inpatient_number, outpatient_number) {
+        $('#patient-id').val(id);
+        $('#name').val(name);
+        $('#inpatient_number').val(inpatient_number);
+        $('#outpatient_number').val(outpatient_number);
+    }
+
+</script>
+</body>
+</html>

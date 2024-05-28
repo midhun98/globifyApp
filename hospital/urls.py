@@ -10,7 +10,7 @@ router.register('patients', views.PatientViewSet)
 router.register('hospitals', views.HospitalViewset)
 urlpatterns = [
     path("", TemplateView.as_view(template_name="hospital.html"), name='hospital'),
-
+    path("patients/<int:hospitalId>/", TemplateView.as_view(template_name="patients.html"), name='patients'),  # Add this line
     path('api/', include(router.urls)),
 
 ]

@@ -115,12 +115,17 @@
                             <td>
                                 <button onclick="loadHospitalForEdit(${hospital.id}, '${hospital.name}', '${hospital.address}')">Edit</button>
                                 <button onclick="deleteHospital(${hospital.id})">Delete</button>
+                                <button onclick="viewPatients(${hospital.id})">View</button>
                             </td>
                         </tr>`;
                     tbody.append(row);
                 });
             }
         });
+    }
+
+    function viewPatients(hospitalId) {
+        window.location.href = '/patients/' + hospitalId + '/';
     }
 
     function createHospital(name, address) {
