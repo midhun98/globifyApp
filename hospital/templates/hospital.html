@@ -7,152 +7,172 @@
         body {
             font-family: Arial, sans-serif;
         }
+
         .container {
             width: 80%;
             margin: 0 auto;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
+
         table, th, td {
             border: 1px solid black;
         }
+
         th, td {
             padding: 10px;
             text-align: left;
         }
+
         form {
             margin-bottom: 20px;
         }
+
         input[type="text"] {
             padding: 5px;
             margin-right: 10px;
         }
+
         input[type="submit"] {
             padding: 5px 10px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Hospital Management</h1>
+<div class="container">
+    <h1>Hospital Management</h1>
 
-        <h2>Add / Update Hospital</h2>
-        <form id="hospital-form">
-            <input type="hidden" id="hospital-id">
-            <label for="name">Name:</label>
-            <input type="text" id="name" required>
-            <label for="address">Address:</label>
-            <input type="text" id="address" required>
-            <input type="submit" value="Submit">
-        </form>
+    <h2>Add / Update Hospital</h2>
+    <form id="hospital-form">
+        {% csrf_token %}
+        <input type="hidden" id="hospital-id">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+        <label for="address">Address:</label>
+        <input type="text" id="address" required>
+        <input type="submit" value="Submit">
+    </form>
 
-        <h2>Hospitals List</h2>
-        <table id="hospitals-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Address</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Hospitals will be listed here -->
-            </tbody>
-        </table>
-    </div>
+    <h2>Hospitals List</h2>
+    <table id="hospitals-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Hospitals will be listed here -->
+        </tbody>
+    </table>
+</div>
 
-    <script>
-        const apiEndpoint = 'http://127.0.0.1:8000/api/hospitals/';
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const apiEndpoint = '/api/hospitals/';
+    let csrfToken = "{{ csrf_token }}";  // Assign the CSRF token value to the JavaScript variable
 
-        document.addEventListener('DOMContentLoaded', function() {
-            loadHospitals();
+    $(document).ready(function () {
+        loadHospitals();
 
-            document.getElementById('hospital-form').addEventListener('submit', function(event) {
-                event.preventDefault();
-                const hospitalId = document.getElementById('hospital-id').value;
-                const name = document.getElementById('name').value;
-                const address = document.getElementById('address').value;
+        $('#hospital-form').on('submit', function (event) {
+            event.preventDefault();
+            const hospitalId = $('#hospital-id').val();
+            const name = $('#name').val();
+            const address = $('#address').val();
 
-                if (hospitalId) {
-                    updateHospital(hospitalId, name, address);
-                } else {
-                    createHospital(name, address);
-                }
-            });
+            if (hospitalId) {
+                updateHospital(hospitalId, name, address);
+            } else {
+                createHospital(name, address);
+            }
         });
+    });
 
-        function loadHospitals() {
-            fetch(apiEndpoint)
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('hospitals-table').getElementsByTagName('tbody')[0];
-                    tbody.innerHTML = '';
-                    data.forEach(hospital => {
-                        const row = tbody.insertRow();
-                        row.insertCell(0).innerText = hospital.id;
-                        row.insertCell(1).innerText = hospital.name;
-                        row.insertCell(2).innerText = hospital.address;
-                        const actionsCell = row.insertCell(3);
-                        const editButton = document.createElement('button');
-                        editButton.innerText = 'Edit';
-                        editButton.addEventListener('click', () => loadHospitalForEdit(hospital));
-                        const deleteButton = document.createElement('button');
-                        deleteButton.innerText = 'Delete';
-                        deleteButton.addEventListener('click', () => deleteHospital(hospital.id));
-                        actionsCell.appendChild(editButton);
-                        actionsCell.appendChild(deleteButton);
-                    });
+    function loadHospitals() {
+        $.ajax({
+            url: apiEndpoint,
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+
+            success: function (data) {
+                const tbody = $('#hospitals-table tbody');
+                tbody.empty();
+                data.forEach(hospital => {
+                    const row = `<tr>
+                            <td>${hospital.id}</td>
+                            <td>${hospital.name}</td>
+                            <td>${hospital.address}</td>
+                            <td>
+                                <button onclick="loadHospitalForEdit(${hospital.id}, '${hospital.name}', '${hospital.address}')">Edit</button>
+                                <button onclick="deleteHospital(${hospital.id})">Delete</button>
+                            </td>
+                        </tr>`;
+                    tbody.append(row);
                 });
-        }
+            }
+        });
+    }
 
-        function createHospital(name, address) {
-            fetch(apiEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, address })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('hospital-form').reset();
+    function createHospital(name, address) {
+        $.ajax({
+            url: apiEndpoint,
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({name, address}),
+            success: function () {
+                $('#hospital-form')[0].reset();
                 loadHospitals();
-            });
-        }
+            }
+        });
+    }
 
-        function updateHospital(id, name, address) {
-            fetch(`${apiEndpoint}${id}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, address })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('hospital-form').reset();
+    function updateHospital(id, name, address) {
+        $.ajax({
+            url: `${apiEndpoint}${id}/`,
+            method: 'PUT',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({name, address}),
+            success: function () {
+                $('#hospital-form')[0].reset();
                 loadHospitals();
-            });
-        }
+            }
+        });
+    }
 
-        function deleteHospital(id) {
-            fetch(`${apiEndpoint}${id}/`, {
-                method: 'DELETE'
-            })
-            .then(() => {
+    function deleteHospital(id) {
+        $.ajax({
+            url: `${apiEndpoint}${id}/`,
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            success: function () {
                 loadHospitals();
-            });
-        }
+            }
+        });
+    }
 
-        function loadHospitalForEdit(hospital) {
-            document.getElementById('hospital-id').value = hospital.id;
-            document.getElementById('name').value = hospital.name;
-            document.getElementById('address').value = hospital.address;
-        }
-    </script>
+    function loadHospitalForEdit(id, name, address) {
+        $('#hospital-id').val(id);
+        $('#name').val(name);
+        $('#address').val(address);
+    }
+</script>
 </body>
 </html>
