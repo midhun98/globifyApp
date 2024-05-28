@@ -18,6 +18,7 @@ class PatientViewSet(viewsets.ModelViewSet):
             return self.queryset.filter(hospital_id=hospital_id)
         return self.queryset
 
+
 class HospitalViewset(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
