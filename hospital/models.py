@@ -22,7 +22,7 @@ class Patients(models.Model):
     outpatient_number = models.CharField(max_length=10, blank=True, null=True, unique=True)
 
     def __str__(self):
-        return f"{self.id} - {self.name}"
+        return f"{self.id} - {self.name} - {self.inpatient_number}"
 
     class Meta:
         verbose_name = "Patients"
